@@ -1,0 +1,126 @@
+@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-rose: #f43f5e;
+    --color-coral: #fb923c;
+    --color-bg: #fff1f2;
+    --color-ink: #1f1a1c;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-rose-50 text-ink font-display antialiased;
+    font-family: 'Baloo 2', system-ui, -apple-system, sans-serif;
+  }
+
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .gradient-hero {
+    background: linear-gradient(
+      120deg,
+      #fff1f2 0%,
+      #ffe4e6 25%,
+      #fed7aa 55%,
+      #fecdd3 80%,
+      #fff1f2 100%
+    );
+    background-size: 300% 300%;
+    animation: gradientShift 14s ease infinite;
+  }
+
+  .gradient-brand {
+    background: linear-gradient(135deg, #f43f5e 0%, #fb923c 100%);
+  }
+
+  .gradient-text {
+    background: linear-gradient(135deg, #f43f5e 0%, #fb923c 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .shadow-soft {
+    box-shadow: 0 10px 40px -12px rgba(244, 63, 94, 0.25);
+  }
+
+  .shadow-soft-lg {
+    box-shadow: 0 24px 60px -16px rgba(244, 63, 94, 0.35);
+  }
+
+  .glass {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+  }
+}
+
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Reveal-on-scroll: driven by a CSS variable --i for staggered delays */
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  transition-delay: calc(var(--i, 0) * 90ms);
+}
+
+.reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@keyframes confetti-fall {
+  0% { transform: translateY(-10vh) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+}
+
+.confetti-piece {
+  position: fixed;
+  top: 0;
+  width: 10px;
+  height: 14px;
+  animation: confetti-fall linear forwards;
+  pointer-events: none;
+  z-index: 60;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .gradient-hero { animation: none; }
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  .confetti-piece { animation: none; display: none; }
+}
+
+/* Hide scrollbar for carousels while keeping scroll */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
