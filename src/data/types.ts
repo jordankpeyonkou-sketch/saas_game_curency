@@ -32,6 +32,17 @@ export interface Quote {
   discounts: QuoteDiscount[];
   totalXof: number;
   pointsEarned: number;
+  bonusUnits?: number;
+}
+
+export interface ActiveEvent {
+  id: string;
+  title: string;
+  slug: string;
+  type: string;
+  rules_json: Record<string, unknown>;
+  game_slugs: string[];
+  ends_at: string;
 }
 
 export interface Order {

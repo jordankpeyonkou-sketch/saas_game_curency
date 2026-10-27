@@ -1,20 +1,21 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X, Check, Loader2, Zap, Package, Sliders } from 'lucide-react';
-import type { Game, GamePack } from '@/data/types';
+import type { Game, GamePack, ActiveEvent } from '@/data/types';
 import { formatXof, getQuote, verifyPlayer, loadPlayerId, savePlayerId, computeQuoteSync, createOrder } from '@/api/client';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 
 interface PurchaseModalProps {
   game: Game;
   initialPackId?: string;
+  events?: ActiveEvent[];
   onClose: () => void;
 }
 
 type VerifyState = 'idle' | 'loading' | 'ok' | 'error';
 type Tab = 'packs' | 'custom';
 
-export function PurchaseModal({ game, initialPackId, onClose }: PurchaseModalProps) {
+export function PurchaseModal({ game, initialPackId, events = [], onClose }: PurchaseModalProps) {
   const navigate = useNavigate();
   const trapRef = useFocusTrap(true);
 
@@ -45,17 +46,23 @@ export function PurchaseModal({ game, initialPackId, onClose }: PurchaseModalPro
     };
   }, [onClose]);
 
+  const relevantEvents = useMemo(
+    () => events.filter((ev) => ev.game_slugs.length === 0 || ev.game_slugs.includes(game.slug)),
+    [events, game.slug],
+  );
+
   const liveQuote = useMemo(() => {
     try {
       return computeQuoteSync(
         game.slug,
         selectedPack?.id,
-        tab === 'custom' ? customUnits : undefined
+        tab === 'custom' ? customUnits : undefined,
+        relevantEvents,
       );
     } catch {
       return null;
     }
-  }, [game.slug, selectedPack, tab, customUnits]);
+  }, [game.slug, selectedPack, tab, customUnits, relevantEvents]);
 
   useEffect(() => {
     if (!liveQuote) return;
@@ -65,13 +72,14 @@ export function PurchaseModal({ game, initialPackId, onClose }: PurchaseModalPro
       getQuote(game.slug, {
         packId: selectedPack?.id,
         customUnits: tab === 'custom' ? customUnits : undefined,
+        events: relevantEvents,
       }).then((q) => {
         setQuoteTotal(q.totalXof);
         setPoints(q.pointsEarned);
       }).catch(() => {});
     }, 150);
     return () => clearTimeout(id);
-  }, [liveQuote, game.slug, selectedPack, tab, customUnits]);
+  }, [liveQuote, game.slug, selectedPack, tab, customUnits, relevantEvents]);
 
   async function handleVerify() {
     if (!playerId.trim()) {

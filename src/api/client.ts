@@ -6,6 +6,7 @@ import type {
   PlayerVerify,
   Quote,
   QuoteDiscount,
+  ActiveEvent,
 } from '@/data/types';
 
 const STORAGE_KEYS = {
@@ -138,19 +139,73 @@ export function loadLastPurchase(): SavedPurchase | null {
   }
 }
 
-function computeDiscounts(gameSlug: string, units: number, subtotal: number): QuoteDiscount[] {
+const MAX_TOTAL_DISCOUNT_PERCENT = 30;
+
+function eventLabel(ev: ActiveEvent): string {
+  switch (ev.type) {
+    case 'percent_discount': {
+      const pct = ev.rules_json.percent as number;
+      return `Événement : -${pct} %`;
+    }
+    case 'bonus_units': {
+      const pct = ev.rules_json.percent as number;
+      return `Événement : +${pct} % unités`;
+    }
+    case 'points_multiplier': {
+      const factor = ev.rules_json.factor as number;
+      return `Événement : ${factor}× points`;
+    }
+    default:
+      return ev.title;
+  }
+}
+
+function computeDiscounts(
+  gameSlug: string,
+  units: number,
+  subtotal: number,
+  events: ActiveEvent[] = [],
+): { discounts: QuoteDiscount[]; bonusUnits: number; pointsMultiplier: number } {
   void gameSlug;
   const discounts: QuoteDiscount[] = [];
   if (units >= 1000) {
     discounts.push({ label: 'Bonus volume -5%', amountXof: Math.round(subtotal * 0.05) });
   }
-  return discounts;
+
+  let bonusUnits = 0;
+  let pointsMultiplier = 1;
+
+  for (const ev of events) {
+    if (ev.game_slugs.length > 0 && !ev.game_slugs.includes(gameSlug)) continue;
+    if (ev.type === 'percent_discount') {
+      const pct = Math.min(Math.max(ev.rules_json.percent as number, 1), 30);
+      const amount = Math.round(subtotal * (pct / 100));
+      discounts.push({ label: eventLabel(ev), amountXof: amount });
+    } else if (ev.type === 'bonus_units') {
+      const pct = Math.min(Math.max(ev.rules_json.percent as number, 1), 50);
+      bonusUnits += Math.round(units * (pct / 100));
+    } else if (ev.type === 'points_multiplier') {
+      const factor = ev.rules_json.factor as number;
+      if (factor === 2 || factor === 3) pointsMultiplier *= factor;
+    }
+  }
+
+  const maxDiscount = Math.round(subtotal * (MAX_TOTAL_DISCOUNT_PERCENT / 100));
+  let discountTotal = discounts.reduce((s, d) => s + d.amountXof, 0);
+  if (discountTotal > maxDiscount) {
+    const scale = maxDiscount / discountTotal;
+    discounts.forEach((d) => (d.amountXof = Math.round(d.amountXof * scale)));
+    discountTotal = maxDiscount;
+  }
+
+  return { discounts, bonusUnits, pointsMultiplier };
 }
 
 export function computeQuoteSync(
   gameSlug: string,
   packId?: string,
-  customUnits?: number
+  customUnits?: number,
+  events: ActiveEvent[] = [],
 ): Quote {
   const game = getGameBySlug(gameSlug);
   if (!game) throw new Error('Jeu introuvable.');
@@ -172,20 +227,20 @@ export function computeQuoteSync(
     throw new Error('Sélection invalide.');
   }
 
-  const discounts = computeDiscounts(gameSlug, units, subtotalXof);
+  const { discounts, bonusUnits, pointsMultiplier } = computeDiscounts(gameSlug, units, subtotalXof, events);
   const discountTotal = discounts.reduce((s, d) => s + d.amountXof, 0);
   const totalXof = subtotalXof - discountTotal;
-  const pointsEarned = Math.floor(totalXof / 100);
+  const pointsEarned = Math.floor((totalXof / 100) * pointsMultiplier);
 
-  return { units, subtotalXof, discounts, totalXof, pointsEarned };
+  return { units, subtotalXof, discounts, totalXof, pointsEarned, bonusUnits: bonusUnits || undefined };
 }
 
 export async function getQuote(
   gameSlug: string,
-  opts: { packId?: string; customUnits?: number }
+  opts: { packId?: string; customUnits?: number; events?: ActiveEvent[] },
 ): Promise<Quote> {
   await delay(150);
-  return computeQuoteSync(gameSlug, opts.packId, opts.customUnits);
+  return computeQuoteSync(gameSlug, opts.packId, opts.customUnits, opts.events ?? []);
 }
 
 export async function createOrder(input: {
@@ -194,12 +249,13 @@ export async function createOrder(input: {
   customUnits?: number;
   playerId: string;
   phone: string;
+  events?: ActiveEvent[];
 }): Promise<Order> {
   await delay(300);
   const game = getGameBySlug(input.gameSlug);
   if (!game) throw new Error('Jeu introuvable.');
 
-  const quote = computeQuoteSync(input.gameSlug, input.packId, input.customUnits);
+  const quote = computeQuoteSync(input.gameSlug, input.packId, input.customUnits, input.events ?? []);
 
   const orderId = 'demo-' + Math.random().toString(36).slice(2, 10);
   const publicToken = Math.random().toString(36).slice(2, 16);
