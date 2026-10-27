@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   Zap, Gift, Trophy, Flame, ArrowRight, CheckCircle2,
-  MousePointerClick, Smartphone, Rocket, Star, MessageCircle,
+  MousePointerClick, Smartphone, Rocket, Star, MessageCircle, Tag,
 } from 'lucide-react';
 import { Reveal } from '@/components/Reveal';
 import { AnimatedCounter } from '@/components/AnimatedCounter';
@@ -11,6 +11,19 @@ import {
 } from '@/api/client';
 import { getPopularPacks } from '@/data/catalog';
 import type { Game } from '@/data/types';
+import type { HomeContent } from '@/admin/types';
+
+async function fetchHomeContent(): Promise<HomeContent | null> {
+  try {
+    const url = import.meta.env.VITE_SUPABASE_URL;
+    const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
+    const res = await fetch(`${url}/functions/v2/home-content`, { headers: { apikey: key } });
+    if (!res.ok) return null;
+    return await res.json() as HomeContent;
+  } catch {
+    return null;
+  }
+}
 
 const FALLBACK_STATS = [
   { label: 'Commandes livrées', value: 12840, suffix: '+' },
