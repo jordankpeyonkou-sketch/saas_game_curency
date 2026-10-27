@@ -1,0 +1,17 @@
+{
+  "projectId": "72439984",
+  "functions": {
+    "admin-api": {
+      "hasChanged": false,
+      "hash": "556068b86401cdd42a49cfd498f0e47bfcca083915c4322584ae3ad494dbdfbe"
+    },
+    "claim-owner": {
+      "hasChanged": false,
+      "hash": "650a86c0c0e8a5f884dd6d40763e3e2604c1d6f411a87067004c4c2e349f7c99"
+    },
+    "home-content": {
+      "hasChanged": false,
+      "hash": "602d85df8251dd08eec5634abd26495cbd348b842c365203029b7bdc11e1cee0"
+    }
+  }
+}

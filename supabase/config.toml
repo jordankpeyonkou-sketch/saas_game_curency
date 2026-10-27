@@ -1,0 +1,8 @@
+[functions.home-content]
+verify_jwt = false
+
+[functions.admin-api]
+verify_jwt = true
+
+[functions.claim-owner]
+verify_jwt = true
